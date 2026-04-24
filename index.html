@@ -2,25 +2,182 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Riygod 的个人主页</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riygod | Digital Space</title>
     <style>
-        body { background: #000; color: #0f0; font-family: "Microsoft YaHei", monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .box { border: 1px solid #0f0; padding: 40px; border-radius: 10px; box-shadow: 0 0 20px #0f0; text-align: center; }
-        h1 { font-size: 2.5em; margin-bottom: 10px; }
-        p { color: #888; margin-bottom: 30px; }
-        .links a { color: #0f0; text-decoration: none; border: 1px solid #0f0; padding: 10px 20px; margin: 0 10px; transition: 0.3s; }
-        .links a:hover { background: #0f0; color: #000; }
+        /* 核心布局：黑绿风格 */
+        body { 
+            background: #000; 
+            color: #0f0; 
+            font-family: "Microsoft YaHei", monospace; 
+            margin: 0; 
+            overflow: hidden; /* 禁止滚动，方便玩游戏 */
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+
+        /* 个人信息方框：浮在游戏层上方 */
+        .box { 
+            position: absolute;
+            top: 15%;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.85); /* 深色半透明，保证文字清晰 */
+            border: 1px solid #0f0; 
+            padding: 40px; 
+            border-radius: 10px; 
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3); 
+            text-align: center; 
+            pointer-events: auto;
+        }
+
+        h1 { font-size: 2.5em; margin: 0 0 10px 0; letter-spacing: 5px; }
+        
+        /* 英文简介样式 */
+        .bio { 
+            color: #888; 
+            margin-bottom: 30px; 
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        /* 按钮样式 */
+        .links { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .links a { 
+            color: #0f0; 
+            text-decoration: none; 
+            border: 1px solid #0f0; 
+            padding: 8px 18px; 
+            font-size: 0.85em;
+            transition: 0.3s; 
+        }
+        .links a:hover { background: #0f0; color: #000; box-shadow: 0 0 10px #0f0; }
+
+        /* 游戏画布：全屏铺底 */
+        #gameCanvas { position: fixed; top: 0; left: 0; z-index: 1; cursor: crosshair; }
+        .score-info { position: fixed; bottom: 20px; font-size: 1.1em; z-index: 5; text-shadow: 0 0 5px #000; }
+        .hint { position: fixed; bottom: 50px; color: #444; font-size: 0.8em; z-index: 5; }
     </style>
 </head>
 <body>
+
     <div class="box">
         <h1>Riygod</h1>
-        <p>正在通往摆烂大佬的路上...</p>
+        <div class="bio">
+            Full-stack explorer . <br>
+            Building the future, one byte at a time.
+        </div>
         <div class="links">
-            <a href="https://space.bilibili.com/87180888?spm_id_from=333.1007.0.0">B站</a>
-            <a href="https://github.com/Riygendary">GitHub</a>
-            <a href="https://user.qzone.qq.com/2816935712/infocenter">QQ空间</a>
+            <a href="https://space.bilibili.com/87180888?spm_id_from=333.1007.0.0" target="_blank">Bilibili</a>
+            <a href="https://github.com/Riygendary" target="_blank">GitHub</a>
+            <a href="https://user.qzone.qq.com/2816935712/infocenter" target="_blank">Qzone</a>
         </div>
     </div>
+
+    <canvas id="gameCanvas"></canvas>
+    <div class="hint">点击空白处跳跃并开始游戏</div>
+    <div class="score-info" id="scoreBoard">Score: 0</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreBoard = document.getElementById('scoreBoard');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let gameActive = false; 
+        let firstPlay = true;
+
+        const player = { x: 50, y: canvas.height / 2, size: 15, v: 0, gravity: 0.4, jump: -7 };
+        const obstacles = [];
+
+        function createObstacle() {
+            const h = Math.random() * (canvas.height * 0.5) + 50;
+            obstacles.push({
+                x: canvas.width,
+                y: Math.random() > 0.5 ? 0 : canvas.height - h,
+                w: 30,
+                h: h
+            });
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            player.v += player.gravity;
+            player.y += player.v;
+
+            if (player.y > canvas.height || player.y < 0) gameOver();
+
+            if (Math.random() < 0.02) createObstacle();
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= 5;
+                if (player.x < obstacles[i].x + obstacles[i].w && 
+                    player.x + player.size > obstacles[i].x &&
+                    player.y < obstacles[i].y + obstacles[i].h && 
+                    player.y + player.size > obstacles[i].y) {
+                    gameOver();
+                }
+                if (obstacles[i].x + obstacles[i].w < 0) {
+                    obstacles.splice(i, 1);
+                    score++;
+                    scoreBoard.innerText = `Score: ${score}`;
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 画玩家（绿点）
+            ctx.fillStyle = "#0f0";
+            ctx.fillRect(player.x, player.y, player.size, player.size);
+            
+            // 画障碍物（红色，警示色）
+            ctx.fillStyle = "#f00";
+            obstacles.forEach(obs => ctx.fillRect(obs.x, obs.y, obs.w, obs.h));
+
+            if (!gameActive && !firstPlay) {
+                ctx.fillStyle = "#0f0";
+                ctx.font = "20px Microsoft YaHei";
+                ctx.textAlign = "center";
+                ctx.fillText("游戏结束 - 点击任意位置重启", canvas.width/2, canvas.height/2 + 80);
+            }
+            requestAnimationFrame(() => { update(); draw(); });
+        }
+
+        function handleInput(e) {
+            // 如果点的是链接，就不触发跳跃
+            if (e.target.tagName === 'A') return;
+
+            if (!gameActive) {
+                player.y = canvas.height / 2;
+                player.v = 0;
+                obstacles.length = 0;
+                score = 0;
+                scoreBoard.innerText = `Score: 0`;
+                gameActive = true;
+                firstPlay = false;
+            } else {
+                player.v = player.jump;
+            }
+        }
+
+        window.addEventListener('mousedown', handleInput);
+        window.addEventListener('touchstart', (e) => {
+            if(e.target.tagName !== 'A') e.preventDefault();
+            handleInput(e);
+        }, { passive: false });
+
+        draw();
+
+        window.onresize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+    </script>
 </body>
 </html>
