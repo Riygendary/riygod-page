@@ -1,37 +1,40 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Riygod | Digital Space</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: -apple-system, system-ui, sans-serif; touch-action: none; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: "Microsoft YaHei", sans-serif; touch-action: none; user-select: none; }
         canvas { display: block; }
         
-        /* 顶部 UI 放大版 */
+        /* 顶部导航栏 - 确保 z-index 最高，永远可点 */
         #header-ui {
             position: absolute; top: 0; left: 0; width: 100%;
-            background: rgba(0, 255, 0, 0.1); border-bottom: 2px solid #0f0;
-            padding: 15px 0; text-align: center; z-index: 100;
+            background: rgba(0, 20, 0, 0.9); border-bottom: 2px solid #0f0;
+            padding: 12px 0; text-align: center; z-index: 300;
+            box-shadow: 0 0 15px #0f0;
         }
-        #header-ui h1 { color: #0f0; margin: 0; font-size: 24px; letter-spacing: 3px; }
+        #header-ui h1 { color: #0f0; margin: 0; font-size: 22px; letter-spacing: 3px; }
         .links { margin-top: 10px; }
         a { 
-            color: #0f0; text-decoration: none; border: 2px solid #0f0; 
-            padding: 10px 15px; margin: 0 5px; font-size: 14px; 
-            display: inline-block; font-weight: bold; border-radius: 4px;
+            color: #0f0; text-decoration: none; border: 1px solid #0f0; 
+            padding: 8px 15px; margin: 0 5px; font-size: 14px; 
+            display: inline-block; font-weight: bold; border-radius: 5px;
+            transition: 0.3s; background: rgba(0, 255, 0, 0.05);
         }
+        a:hover { background: #0f0; color: #000; }
         
-        #score-board { position: absolute; top: 110px; width: 100%; text-align: center; color: #0f0; font-size: 40px; font-weight: bold; pointer-events: none; text-shadow: 0 0 10px #0f0; }
+        #score-board { position: absolute; top: 120px; width: 100%; text-align: center; color: #0f0; font-size: 45px; font-weight: bold; pointer-events: none; z-index: 100; text-shadow: 0 0 10px #0f0; }
         
-        /* 覆盖层放大 */
+        /* 游戏遮罩层 */
         #overlay { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); display: flex; flex-direction: column;
+            background: rgba(0,0,0,0.75); display: flex; flex-direction: column;
             justify-content: center; align-items: center; color: #fff; z-index: 200;
         }
-        #overlay h2 { font-size: 32px; color: #0f0; margin-bottom: 10px; }
-        #overlay p { font-size: 18px; opacity: 0.8; }
+        #overlay h2 { font-size: 32px; color: #0f0; margin-bottom: 10px; text-shadow: 0 0 15px #0f0; }
+        #overlay p { font-size: 18px; border: 1px solid #fff; padding: 10px 20px; border-radius: 30px; }
     </style>
 </head>
 <body>
@@ -39,9 +42,9 @@
     <div id="header-ui">
         <h1>RIYGOD</h1>
         <div class="links">
-            <a href="https://space.bilibili.com/87180888?spm_id_from=333.1007.0.0">Bilibili</a>
-            <a href="https://github.com/Riygendary">Github</a>
-            <a href="https://user.qzone.qq.com/2816935712/infocenter">QZONE</a>
+            <a href="https://space.bilibili.com/87180888?spm_id_from=333.1007.0.0" target="_blank">B站</a>
+            <a href="https://github.com/Riygendary" target="_blank">GitHub</a>
+            <a href="https://user.qzone.qq.com/2816935712/infocenter" target="_blank">QQ空间</a>
         </div>
     </div>
 
@@ -49,7 +52,7 @@
 
     <div id="overlay">
         <h2 id="msg-title">SPACE EXPLORER</h2>
-        <p>点击屏幕任意位置开始</p>
+        <p>点击屏幕开始跳跃</p>
     </div>
 
     <canvas id="game"></canvas>
@@ -63,11 +66,11 @@
 
     let W, H, bird, pipes, score, frame, gameRunning = false;
 
-    // 物理参数调优
-    const G = 0.6;          // 重力增强
-    const JUMP = -9;        // 跳跃力度增强，响应更脆
-    const PIPE_SPEED = 3.2; // 移动速度稍微降一点点
-    const PIPE_INTERVAL = 110; // 生成频率降低（原本是80，现在110）
+    // 物理参数：针对起飞慢、手感差进行的专项调优
+    const G = 0.65;            // 重力
+    const JUMP = -10.5;        // 跳跃力度（大幅加强）
+    const PIPE_SPEED = 3.6;    // 移动速度
+    const PIPE_INTERVAL = 135; // 管道间距（显著拉开，避免密集）
 
     function resize() {
         W = window.innerWidth;
@@ -77,7 +80,7 @@
     }
 
     function init() {
-        bird = { x: W * 0.2, y: H / 2, w: 30, h: 30, v: 0 };
+        bird = { x: W * 0.2, y: H / 2, w: 32, h: 32, v: 0 };
         pipes = [];
         score = 0;
         frame = 0;
@@ -94,47 +97,41 @@
     }
 
     function createPipe() {
-        // 洞口高度：屏幕的 25% (更宽，容易通过)
-        const gap = H * 0.25; 
-        const minH = H * 0.15;
-        const maxH = H * 0.55;
+        const gap = H * 0.26; // 开口大小
+        const minH = H * 0.12;
+        const maxH = H * 0.52;
         let h = Math.random() * (maxH - minH) + minH;
         
-        pipes.push({ x: W, y: 0, w: 60, h: h, passed: false });
-        pipes.push({ x: W, y: h + gap, w: 60, h: H - h - gap });
+        pipes.push({ x: W, y: 0, w: 65, h: h, passed: false });
+        pipes.push({ x: W, y: h + gap, w: 65, h: H - h - gap });
     }
 
     function loop() {
         if (!gameRunning) return;
-
         ctx.clearRect(0, 0, W, H);
 
-        // 物理逻辑
         bird.v += G;
         bird.y += bird.v;
         
-        // 渲染小鸟
+        // 渲染小鸟（带发光效果）
         ctx.fillStyle = '#0f0';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#0f0';
         ctx.fillRect(bird.x, bird.y, bird.w, bird.h);
+        ctx.shadowBlur = 0;
 
-        // 死亡判定
         if (bird.y + bird.h > H || bird.y < 0) return endGame();
 
-        // 管道生成
         if (frame % PIPE_INTERVAL === 0) createPipe();
 
         for (let i = pipes.length - 1; i >= 0; i--) {
             let p = pipes[i];
             p.x -= PIPE_SPEED;
-
             ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
             ctx.fillRect(p.x, p.y, p.w, p.h);
 
-            // 碰撞
-            if (bird.x < p.x + p.w && bird.x + bird.w > p.x && 
-                bird.y < p.y + p.h && bird.y + bird.h > p.y) return endGame();
+            if (bird.x < p.x + p.w && bird.x + bird.w > p.x && bird.y < p.y + p.h && bird.y + bird.h > p.y) return endGame();
 
-            // 计分
             if (!p.passed && p.x + p.w < bird.x) {
                 p.passed = true;
                 if (i % 2 === 0) {
@@ -144,7 +141,6 @@
             }
             if (p.x + p.w < 0) pipes.splice(i, 1);
         }
-
         frame++;
         requestAnimationFrame(loop);
     }
@@ -155,17 +151,16 @@
         overlay.style.display = 'flex';
     }
 
-    // 事件监听修复
     const handleAction = (e) => {
+        // 核心修复：如果点击的是导航栏及其链接，不触发游戏动作
+        if (e.target.closest('#header-ui')) return;
+
         if (!gameRunning) {
             startGame();
         } else {
             bird.v = JUMP;
         }
-        // 阻止默认滚动行为，但允许链接点击
-        if (e.target.tagName !== 'A') {
-            e.preventDefault();
-        }
+        if (e.type === 'touchstart') e.preventDefault();
     };
 
     window.addEventListener('touchstart', handleAction, { passive: false });
