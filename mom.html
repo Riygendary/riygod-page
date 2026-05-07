@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>给妈妈的惊喜 | DSR</title>
     <style>
-        /* 背景升级：温馨的樱花粉渐变，铺满全屏 */
+        /* 【保留】樱花粉渐变全屏背景 */
         body { 
             margin: 0; 
             min-height: 100vh;
@@ -19,12 +19,12 @@
             position: relative;
         }
 
-        /* 背景装饰层 */
+        /* 【保留】背景装饰层 */
         #bg-decor {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none;
         }
 
-        /* 照片：加个更精致的框和微小的旋转角度 */
+        /* 【保留】照片精致边框 */
         .photo-frame {
             width: 300px; 
             margin-top: 50px; 
@@ -32,12 +32,12 @@
             box-shadow: 0 10px 30px rgba(214, 51, 132, 0.15); 
             background: #fff;
             transition: transform 0.3s ease;
-            transform: rotate(-1deg); /* 随意的艺术感 */
+            transform: rotate(-1deg);
         }
         .photo-frame:hover { transform: rotate(0deg) scale(1.02); }
         .photo-frame img { width: 100%; display: block; }
         
-        /* 祝福语：加个温馨的背景块和精细的边框 */
+        /* 【保留】祝福语温馨背景块 */
         .message-box {
             width: 85%; 
             max-width: 480px; 
@@ -55,7 +55,7 @@
         .signature { text-align: right; margin-top: 25px; color: #777; font-size: 14px; }
         .highlight { color: #d63384; font-weight: bold; }
 
-        /* 🎁 “惊喜”按钮样式：金粉色，带有心跳脉动效果 */
+        /* 【保留】🎁 “惊喜”按钮样式 */
         #surprise-btn {
             margin: 40px 0;
             padding: 15px 35px;
@@ -68,21 +68,21 @@
             cursor: pointer;
             box-shadow: 0 5px 15px rgba(255, 102, 153, 0.4);
             transition: 0.3s;
-            animation: pulse 2s infinite; /* 脉动效果引导点击 */
+            animation: pulse 2s infinite;
             z-index: 100;
         }
         #surprise-btn:hover {
             transform: scale(1.1);
             box-shadow: 0 8px 25px rgba(255, 102, 153, 0.6);
-            animation: none; /* 悬停时停止脉动 */
+            animation: none;
         }
 
-        /* 花束特效容器 */
-        #flower-container {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 999;
+        /* 花束特效容器，确保能覆盖全屏 */
+        #flower-canvas {
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            pointer-events: none; 
+            z-index: 998;
         }
 
         /* 动画定义 */
@@ -119,10 +119,10 @@
 
     <button id="surprise-btn">点击领取🎁惊喜</button>
 
-    <canvas id="flower-canvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 998;"></canvas>
+    <canvas id="flower-canvas"></canvas>
 
 <script>
-    // === 背景装饰特效 (温和飘落) ===
+    // === 1. 保留：平时温和的背景飘落 ===
     const decorContainer = document.getElementById('bg-decor');
     const items = ['❤', '🌸'];
     function createDecor() {
@@ -141,9 +141,9 @@
         }, 100);
         setTimeout(() => item.remove(), 8000);
     }
-    setInterval(createDecor, 600); // 平时温和地飘
+    const bgDecorInterval = setInterval(createDecor, 600); // 储存 ID，用于点击后停止
 
-    // === 花束爆发特效 (点击惊喜) ===
+    // === 2. 【全新重写】全屏柔和花瓣雨 ===
     const btn = document.getElementById('surprise-btn');
     const canvas = document.getElementById('flower-canvas');
     const ctx = canvas.getContext('2d');
@@ -153,93 +153,135 @@
     canvas.width = W;
     canvas.height = H;
 
-    const particles = [];
-    // 🌸 康乃馨粒子形状的简单绘制方法
-    const drawFlowerParticle = (p) => {
-        ctx.beginPath();
+    const petals = [];
+    let animationRunning = false;
+
+    // 创建柔和的花瓣/樱花图案方法
+    // 使用绘图路径绘制更自然的半透明“花瓣”，而不是生硬的烟花粒子
+    const drawPetalPath = (ctx, petal) => {
         ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rotation);
-        ctx.fillStyle = p.color;
-        // 绘制一个类似花瓣的形状
-        for(let i = 0; i < 5; i++) {
-            ctx.ellipse(0, 3, 4, 7, 0, 0, Math.PI * 2);
-            ctx.rotate(Math.PI * 2 / 5);
-        }
+        ctx.translate(petal.x, petal.y);
+        ctx.rotate(petal.rotation);
+        ctx.globalAlpha = petal.opacity; // 使用花瓣自身的透明度
+        ctx.fillStyle = petal.color;
+        ctx.beginPath();
+        
+        // 绘制一个柔和、略带弯曲的花瓣形状 (贝塞尔曲线)
+        const size = petal.size;
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(size * 0.7, -size * 1.5, size * 2.2, size, 0, size * 1.8);
+        ctx.bezierCurveTo(-size * 2.2, size, -size * 0.7, -size * 1.5, 0, 0);
         ctx.fill();
         ctx.restore();
     };
 
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x;
-            this.y = y;
-            this.color = color;
-            this.r = Math.random() * 3 + 1;
-            this.vx = (Math.random() - 0.5) * 15; // 爆发速度
-            this.vy = (Math.random() - 0.7) * 20; 
-            this.gy = 0.5; // 重力
+    class Petal {
+        constructor() {
+            // 全屏分布：不再从单一爆点，而是全屏多点生成，更温柔包围
+            this.x = Math.random() * W; 
+            this.y = Math.random() * -H / 2; // 在屏幕上方淡雅淡出
+
+            // 淡雅配色：使用非常温和的浅樱花粉和白玫瑰色
+            const colors = [
+                'rgba(255, 182, 193, 0.7)', // 浅粉色，半透明
+                'rgba(255, 240, 245, 0.8)', // 薰衣草腮红
+                'rgba(255, 255, 255, 0.6)'  // 半透明白
+            ];
+            this.color = colors[Math.floor(Math.random() * colors.length)];
+            this.size = Math.random() * 10 + 8; // 更大的、更有质感的花瓣，而不是碎粒子
+            
+            // 极度柔和的速度设置
+            this.vx = (Math.random() - 0.5) * 1.5; // 轻微的左右摆动
+            this.vy = Math.random() * 2 + 1.5;      // 缓慢飘落
             this.opacity = 1;
             this.rotation = Math.random() * Math.PI * 2;
-            this.friction = 0.96; // 空气摩擦
+            this.rotationSpeed = (Math.random() - 0.5) * 0.02; // 极慢的旋转
         }
         update() {
-            this.vx *= this.friction;
-            this.vy *= this.friction;
-            this.vy += this.gy;
             this.x += this.vx;
             this.y += this.vy;
-            this.opacity -= 0.01;
-            this.rotation += 0.05;
-        }
-    }
-
-    function createExplosion(x, y) {
-        // 金色和粉色的康乃馨配色
-        const colors = ['#d63384', '#ff6699', '#ff99cc', '#ffd700', '#fff']; 
-        for (let i = 0; i < 150; i++) { // 粒子数量
-            particles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
-        }
-    }
-
-    function animate() {
-        if (!particles.length) {
-            ctx.clearRect(0, 0, W, H);
-            return;
-        }
-        ctx.clearRect(0, 0, W, H);
-        for (let i = particles.length - 1; i >= 0; i--) {
-            let p = particles[i];
-            p.update();
-            if (p.opacity <= 0 || p.y > H) {
-                particles.splice(i, 1);
-                continue;
+            this.rotation += this.rotationSpeed;
+            
+            // 淡入淡出效果：接近底部或飘出太久时慢慢淡出
+            if (this.y > H * 0.7) {
+                this.opacity -= 0.01;
             }
-            ctx.save();
-            ctx.globalAlpha = p.opacity;
-            drawFlowerParticle(p);
-            ctx.restore();
         }
-        requestAnimationFrame(animate);
+    }
+
+    // 初始化花瓣雨
+    function initPetalRain() {
+        petals.length = 0; // 清空旧数据
+        for (let i = 0; i < 50; i++) { // 数量从 150 减少到 50，避免拥挤，保证柔和感
+            petals.push(new Petal());
+        }
+    }
+
+    // 动画循环
+    function animate() {
+        if (!animationRunning) return;
+        ctx.clearRect(0, 0, W, H);
+        
+        let allFadeOut = true;
+        for (let i = petals.length - 1; i >= 0; i--) {
+            let p = petals[i];
+            p.update();
+            if (p.opacity > 0) {
+                allFadeOut = false;
+                drawPetalPath(ctx, p); // 绘制温柔的花瓣图案
+            } else if (animationRunning) {
+                // 如果动画仍在运行，则补充新的花瓣，保持持续感
+                petals.splice(i, 1);
+                petals.push(new Petal());
+            } else {
+                // 如果停止补充，则移除已淡出的花瓣
+                petals.splice(i, 1);
+            }
+        }
+        
+        // 如果动画运行太久，缓慢停止
+        if (allFadeOut) {
+            animationRunning = false;
+            ctx.clearRect(0, 0, W, H);
+        } else {
+            requestAnimationFrame(animate);
+        }
     }
 
     btn.addEventListener('click', () => {
-        // 1. 触发花束粒子爆发（从按钮中心爆发）
-        const rect = btn.getBoundingClientRect();
-        createExplosion(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        // 1. 【升级】停止平时微小的背景飘落，腾出视觉重点
+        clearInterval(bgDecorInterval);
+        decorContainer.innerHTML = ''; // 移除平时的小心心
+
+        // 2. 【全新】启用全屏柔和花瓣特效
+        animationRunning = true;
+        initPetalRain(); // 初始化花瓣雨
         
-        // 2. 更改按钮文字和状态
+        // 3. 更改按钮文字和状态
         btn.innerText = "祝妈妈每天都开心！";
         btn.style.animation = 'none'; // 停止脉动
         btn.disabled = true; // 防止重复点击
         btn.style.background = '#ccc';
         btn.style.boxShadow = 'none';
+        btn.style.cursor = 'default';
 
-        // 3. 启动特效画布
-        animate();
+        // 4. 【全新】全屏淡雅淡入特效
+        animate(); 
+
+        // 5. 【保留】10秒后自动淡出，保持简洁
+        setTimeout(() => {
+            animationRunning = false; // 停止补充新花瓣，允许旧花瓣淡出
+        }, 10000); 
     });
 
-    window.addEventListener('resize', () => { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; });
+    // 适配窗口大小
+    window.addEventListener('resize', () => { 
+        W = window.innerWidth; 
+        H = window.innerHeight; 
+        canvas.width = W; 
+        canvas.height = H; 
+        if(animationRunning) initPetalRain(); // 重新生成全屏花瓣
+    });
 </script>
 </body>
 </html>
