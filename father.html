@@ -2,335 +2,509 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>父亲节贺卡</title>
-<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400;600&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>写给父亲 · 父亲节</title>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
-    min-height: 100vh;
-    background: #0a0e1a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Noto Serif SC', serif;
-    overflow: hidden;
-  }
+:root {
+  --gold: #c9a84c;
+  --gold-dim: rgba(201,168,76,0.35);
+  --gold-faint: rgba(201,168,76,0.12);
+  --ink: #0b0f1c;
+  --ink2: #0f1628;
+}
 
-  canvas#stars {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 0;
-  }
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--ink);
+  font-family: 'Noto Serif SC', 'Songti SC', STSong, serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
 
-  .card {
-    position: relative;
-    z-index: 1;
-    width: min(680px, 92vw);
-    background: linear-gradient(160deg, #111827 0%, #0d1525 60%, #0a1020 100%);
-    border: 1px solid rgba(212, 175, 55, 0.25);
-    border-radius: 4px;
-    padding: 64px 60px 56px;
-    box-shadow: 0 0 80px rgba(212, 175, 55, 0.06), 0 40px 80px rgba(0,0,0,0.6);
-    text-align: center;
-    animation: fadeUp 1.2s cubic-bezier(.22,.61,.36,1) both;
-  }
+/* ── 全屏背景层 ── */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(32px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+/* ── 山脉 SVG 背景 ── */
+.mountain-bg {
+  position: fixed;
+  bottom: 0; left: 0;
+  width: 100%; height: 45vh;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 2s ease 0.5s;
+}
+.mountain-bg.visible { opacity: 1; }
 
-  .card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 4px;
-    background: radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.07) 0%, transparent 65%);
-    pointer-events: none;
-  }
+/* ── 主滚动容器 ── */
+.scroll-wrap {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 80px;
+}
 
-  .eyebrow {
-    font-size: 11px;
-    letter-spacing: 0.35em;
-    color: rgba(212, 175, 55, 0.55);
-    text-transform: uppercase;
-    margin-bottom: 32px;
-  }
+/* ── 封面屏 ── */
+.cover {
+  width: 100%;
+  height: 100svh;
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
 
-  .divider-top {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 40px;
-  }
+.cover-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.5em;
+  color: rgba(201,168,76,0.45);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: fadeIn 1s ease 0.6s both;
+}
 
-  .divider-top .line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(212,175,55,0.3), transparent);
-  }
+.cover-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: clamp(52px, 14vw, 88px);
+  color: var(--gold);
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 60px rgba(201,168,76,0.4);
+  opacity: 0;
+  animation: fadeIn 1.2s ease 0.9s both, pulse 4s ease-in-out 2.1s infinite alternate;
+}
 
-  .divider-top .diamond {
-    width: 6px;
-    height: 6px;
-    background: rgba(212,175,55,0.6);
-    transform: rotate(45deg);
-    flex-shrink: 0;
-  }
+.cover-sub {
+  margin-top: 20px;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: rgba(201,168,76,0.4);
+  opacity: 0;
+  animation: fadeIn 1s ease 1.4s both;
+}
 
-  .main-title {
-    font-family: 'Ma Shan Zheng', cursive;
-    font-size: clamp(48px, 10vw, 72px);
-    color: #d4af37;
-    line-height: 1.1;
-    margin-bottom: 8px;
-    text-shadow: 0 0 40px rgba(212,175,55,0.3);
-    animation: glow 3s ease-in-out infinite alternate;
-  }
+.scroll-hint {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: fadeIn 1s ease 2.5s both;
+}
 
-  @keyframes glow {
-    from { text-shadow: 0 0 30px rgba(212,175,55,0.2); }
-    to   { text-shadow: 0 0 60px rgba(212,175,55,0.45), 0 0 100px rgba(212,175,55,0.15); }
-  }
+.scroll-hint span {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: rgba(201,168,76,0.3);
+}
 
-  .sub-title {
-    font-size: 13px;
-    letter-spacing: 0.2em;
-    color: rgba(212, 175, 55, 0.45);
-    margin-bottom: 48px;
-  }
+.scroll-hint .chevron {
+  width: 12px;
+  height: 12px;
+  border-right: 1px solid rgba(201,168,76,0.35);
+  border-bottom: 1px solid rgba(201,168,76,0.35);
+  transform: rotate(45deg);
+  animation: bounce 2s ease-in-out infinite;
+}
 
-  .quote-block {
-    position: relative;
-    margin: 0 auto 40px;
-    max-width: 480px;
-    padding: 32px 36px;
-    border-left: 2px solid rgba(212,175,55,0.35);
-    text-align: left;
-  }
+/* ── 分割线 ── */
+.divider {
+  width: min(420px, 80vw);
+  height: 1px;
+  margin: 0 auto 56px;
+  position: relative;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.divider.visible { opacity: 1; }
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+.divider::after {
+  content: '';
+  position: absolute;
+  top: -3px; left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 6px; height: 6px;
+  background: var(--gold);
+  opacity: 0.5;
+}
 
-  .quote-mark {
-    position: absolute;
-    top: 12px;
-    left: -14px;
-    width: 24px;
-    height: 24px;
-    background: #0d1525;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+/* ── 内容区 ── */
+.content {
+  width: min(600px, 90vw);
+  padding-top: 20px;
+}
 
-  .quote-mark svg {
-    width: 18px;
-    height: 18px;
-    fill: rgba(212,175,55,0.6);
-  }
+/* ── 诗节 ── */
+.stanza {
+  margin-bottom: 64px;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+}
+.stanza.visible {
+  opacity: 1;
+  transform: none;
+}
 
-  .quote-text {
-    font-size: 15px;
-    line-height: 2;
-    color: rgba(255,255,255,0.78);
-    font-weight: 300;
-  }
+.stanza-label {
+  font-size: 10px;
+  letter-spacing: 0.45em;
+  color: rgba(201,168,76,0.35);
+  margin-bottom: 20px;
+  display: block;
+}
 
-  .quote-text em {
-    font-style: normal;
-    color: #d4af37;
-    font-weight: 400;
-  }
+.stanza-text {
+  font-size: clamp(14px, 3.8vw, 16px);
+  line-height: 2.2;
+  color: rgba(255,255,255,0.72);
+  font-weight: 300;
+}
 
-  .blessing {
-    font-size: 13.5px;
-    line-height: 2.1;
-    color: rgba(255,255,255,0.55);
-    font-weight: 300;
-    max-width: 420px;
-    margin: 0 auto 48px;
-    letter-spacing: 0.04em;
-  }
+.stanza-text em {
+  font-style: normal;
+  color: var(--gold);
+  font-weight: 400;
+}
 
-  .divider-bottom {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 36px;
-  }
+/* ── 大号金句 ── */
+.verse-big {
+  margin-bottom: 64px;
+  padding: 40px 0;
+  border-top: 1px solid var(--gold-faint);
+  border-bottom: 1px solid var(--gold-faint);
+  text-align: center;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 1s ease, transform 1s ease;
+}
+.verse-big.visible { opacity: 1; transform: none; }
 
-  .divider-bottom .line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-  }
+.verse-big p {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: clamp(20px, 5.5vw, 28px);
+  color: rgba(255,255,255,0.88);
+  line-height: 1.9;
+  letter-spacing: 0.08em;
+}
 
-  .signature-area {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-  }
+.verse-big p em {
+  font-style: normal;
+  color: var(--gold);
+}
 
-  .sig-left {
-    text-align: left;
-  }
+/* ── 祝福段 ── */
+.blessing {
+  margin-bottom: 56px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+}
+.blessing.visible { opacity: 1; transform: none; }
 
-  .sig-date {
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    color: rgba(255,255,255,0.25);
-    margin-bottom: 4px;
-  }
+.blessing p {
+  font-size: clamp(13px, 3.5vw, 14.5px);
+  line-height: 2.4;
+  color: rgba(255,255,255,0.45);
+  font-weight: 300;
+  letter-spacing: 0.06em;
+}
 
-  .sig-from {
-    font-family: 'Ma Shan Zheng', cursive;
-    font-size: 22px;
-    color: rgba(212,175,55,0.7);
-  }
+/* ── 署名 ── */
+.signature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.signature.visible { opacity: 1; }
 
-  .sig-right {
-    text-align: right;
-  }
+.sig-line {
+  width: 40px;
+  height: 1px;
+  background: var(--gold-dim);
+}
 
-  .mountain-icon svg {
-    width: 48px;
-    height: 32px;
-    opacity: 0.25;
-  }
+.sig-from {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 20px;
+  color: rgba(201,168,76,0.65);
+  letter-spacing: 0.1em;
+}
 
-  .corner-ornament {
-    position: absolute;
-    width: 32px;
-    height: 32px;
-    opacity: 0.35;
-  }
+.sig-date {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.2);
+  margin-top: 4px;
+}
 
-  .corner-ornament.tl { top: 16px; left: 16px; }
-  .corner-ornament.tr { top: 16px; right: 16px; transform: scaleX(-1); }
-  .corner-ornament.bl { bottom: 16px; left: 16px; transform: scaleY(-1); }
-  .corner-ornament.br { bottom: 16px; right: 16px; transform: scale(-1); }
+/* ── 动画 ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
-  .corner-ornament svg {
-    width: 100%;
-    height: 100%;
-    fill: none;
-    stroke: rgba(212,175,55,0.6);
-    stroke-width: 1;
-  }
+@keyframes pulse {
+  from { text-shadow: 0 0 40px rgba(201,168,76,0.25); }
+  to   { text-shadow: 0 0 80px rgba(201,168,76,0.55), 0 0 120px rgba(201,168,76,0.2); }
+}
 
-  @media (max-width: 480px) {
-    .card { padding: 48px 32px 40px; }
-    .quote-block { padding: 24px 24px; }
-    .signature-area { flex-direction: column; align-items: center; gap: 16px; }
-    .sig-left, .sig-right { text-align: center; }
-  }
+@keyframes bounce {
+  0%, 100% { transform: rotate(45deg) translateY(0); }
+  50%       { transform: rotate(45deg) translateY(5px); }
+}
+
+/* ── 流星 ── */
+.meteor {
+  position: fixed;
+  top: 0; left: 0;
+  width: 1px; height: 1px;
+  pointer-events: none;
+  z-index: 3;
+}
 </style>
 </head>
 <body>
 
-<canvas id="stars"></canvas>
+<canvas id="bg-canvas"></canvas>
 
-<div class="card">
+<!-- 山脉背景 -->
+<svg class="mountain-bg" id="mountains" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mg1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c9a84c" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#c9a84c" stop-opacity="0.03"/>
+    </linearGradient>
+    <linearGradient id="mg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c9a84c" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="#c9a84c" stop-opacity="0.01"/>
+    </linearGradient>
+    <linearGradient id="mg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c9a84c" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- 远山 -->
+  <polygon points="0,400 200,180 420,300 600,140 800,260 1000,120 1200,200 1440,160 1440,400" fill="url(#mg3)"/>
+  <!-- 中山 -->
+  <polygon points="0,400 100,250 320,340 560,200 720,300 900,160 1100,240 1300,180 1440,220 1440,400" fill="url(#mg2)"/>
+  <!-- 近山 - 主峰居中 -->
+  <polygon points="0,400 0,340 180,380 400,310 600,200 720,100 840,200 1000,280 1200,320 1440,360 1440,400" fill="url(#mg1)"/>
+  <!-- 主峰轮廓线 -->
+  <polyline points="400,310 600,200 720,100 840,200 1000,280" fill="none" stroke="rgba(201,168,76,0.2)" stroke-width="1"/>
+  <!-- 峰顶光晕 -->
+  <circle cx="720" cy="100" r="2" fill="rgba(201,168,76,0.5)"/>
+</svg>
 
-  <svg class="corner-ornament tl" viewBox="0 0 32 32"><path d="M2 30 L2 2 L30 2"/><path d="M2 16 L8 10"/><path d="M16 2 L10 8"/></svg>
-  <svg class="corner-ornament tr" viewBox="0 0 32 32"><path d="M2 30 L2 2 L30 2"/><path d="M2 16 L8 10"/><path d="M16 2 L10 8"/></svg>
-  <svg class="corner-ornament bl" viewBox="0 0 32 32"><path d="M2 30 L2 2 L30 2"/><path d="M2 16 L8 10"/><path d="M16 2 L10 8"/></svg>
-  <svg class="corner-ornament br" viewBox="0 0 32 32"><path d="M2 30 L2 2 L30 2"/><path d="M2 16 L8 10"/><path d="M16 2 L10 8"/></svg>
+<div class="scroll-wrap">
 
-  <p class="eyebrow">Father's Day · 父亲节</p>
-
-  <div class="divider-top">
-    <div class="line"></div>
-    <div class="diamond"></div>
-    <div class="line"></div>
-  </div>
-
-  <h1 class="main-title">写给父亲</h1>
-  <p class="sub-title">2026 · 六月</p>
-
-  <div class="quote-block">
-    <div class="quote-mark">
-      <svg viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.293-3.995 5.848h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.293-3.996 5.848h3.983v10h-9.983z"/></svg>
+  <!-- 封面 -->
+  <section class="cover">
+    <p class="cover-eyebrow">Father's Day · 二〇二六</p>
+    <h1 class="cover-title">写给父亲</h1>
+    <p class="cover-sub">父亲节快乐</p>
+    <div class="scroll-hint">
+      <span>向下展开</span>
+      <div class="chevron"></div>
     </div>
-    <p class="quote-text">
-      您的背影，是我<em>走过最长的路</em>。<br>
-      您的沉默，是我听过<em>最深的告白</em>。<br>
-      年少时，我以为山很高远——<br>
-      后来才明白，<em>您就是那座山</em>。
-    </p>
-  </div>
+  </section>
 
-  <p class="blessing">
-    岁月无声，却从未停止在您额头留下痕迹。<br>
-    谢谢您用一生，为我撑起了一片天空。<br>
-    愿您身体康健，心中所念，皆得安然。<br>
-    父亲节快乐。
-  </p>
+  <!-- 内容 -->
+  <div class="content">
 
-  <div class="divider-bottom">
-    <div class="line"></div>
-    <div class="diamond" style="width:4px;height:4px;background:rgba(255,255,255,0.15);transform:rotate(45deg);flex-shrink:0"></div>
-    <div class="line"></div>
-  </div>
+    <div class="divider" id="d1"></div>
 
-  <div class="signature-area">
-    <div class="sig-left">
-      <p class="sig-date">写于 2026 年父亲节</p>
+    <div class="stanza" id="s1">
+      <span class="stanza-label">一 · 背影</span>
+      <p class="stanza-text">
+        小时候，<em>您的背影是整个世界</em>。<br>
+        您走到哪里，我的目光便跟到哪里。<br>
+        后来渐渐长大，才懂得那背影里<br>
+        藏着多少您从不开口说出的话。
+      </p>
+    </div>
+
+    <div class="stanza" id="s2">
+      <span class="stanza-label">二 · 沉默</span>
+      <p class="stanza-text">
+        您不善言辞，却把爱藏进每一件小事——<br>
+        晚上带来的夜宵，<br>
+        时常的嘘寒问暖，<br>
+        还有<em>那句从未说出口的"我为你骄傲"</em>。
+      </p>
+    </div>
+
+    <div class="verse-big" id="vb">
+      <p>年少时，以为山很高远</p>
+      <p>后来才明白——</p>
+      <p><em>您，就是那座山</em></p>
+    </div>
+
+    <div class="stanza" id="s3">
+      <span class="stanza-label">三 · 岁月</span>
+      <p class="stanza-text">
+        如今看见您鬓角的白，<br>
+        才发现时间没有绕开任何人。<br>
+        曾经宽阔的肩膀，扛过了太多风雨，<br>
+        而我，还没来得及<em>好好说一声谢谢</em>。
+      </p>
+    </div>
+
+    <div class="blessing" id="bl">
+      <p>
+        愿您此后每一天，都轻松一些<br>
+        少操一些心，多歇一歇<br>
+        让我们来为您撑一片天<br>
+        <br>
+        父亲节快乐
+      </p>
+    </div>
+
+    <div class="divider" id="d2" style="margin-bottom: 40px;"></div>
+
+    <div class="signature" id="sig">
+      <div class="sig-line"></div>
       <p class="sig-from">您的儿子DSR，敬上</p>
+      <p class="sig-date">写于 二〇二六年 父亲节</p>
     </div>
-    <div class="sig-right mountain-icon">
-      <svg viewBox="0 0 64 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="32,4 56,36 8,36" fill="rgba(212,175,55,0.15)" stroke="rgba(212,175,55,0.5)" stroke-width="1.2" stroke-linejoin="round"/>
-        <polygon points="48,14 62,36 34,36" fill="rgba(212,175,55,0.08)" stroke="rgba(212,175,55,0.3)" stroke-width="1" stroke-linejoin="round"/>
-        <line x1="8" y1="36" x2="56" y2="36" stroke="rgba(212,175,55,0.2)" stroke-width="0.8"/>
-      </svg>
-    </div>
-  </div>
 
+  </div>
 </div>
 
 <script>
 (function() {
-  const canvas = document.getElementById('stars');
+  // ── 星空 Canvas ──
+  const canvas = document.getElementById('bg-canvas');
   const ctx = canvas.getContext('2d');
-  let W, H, particles;
+  let W, H, stars, meteors = [];
 
   function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
-    init();
+    buildStars();
   }
 
-  function init() {
-    particles = Array.from({ length: 160 }, () => ({
+  function buildStars() {
+    const n = Math.floor((W * H) / 6000);
+    stars = Array.from({ length: n }, () => ({
       x: Math.random() * W,
-      y: Math.random() * H,
-      r: Math.random() * 1.2 + 0.2,
-      a: Math.random(),
-      speed: Math.random() * 0.003 + 0.001,
+      y: Math.random() * H * 0.75,
+      r: Math.random() * 1.3 + 0.1,
+      base: Math.random() * 0.6 + 0.1,
+      speed: Math.random() * 0.0015 + 0.0005,
       phase: Math.random() * Math.PI * 2
     }));
   }
 
-  function draw(t) {
+  function spawnMeteor() {
+    const x = Math.random() * W * 0.7 + W * 0.1;
+    const y = Math.random() * H * 0.3;
+    meteors.push({ x, y, vx: 3.5, vy: 1.8, len: 80, life: 1 });
+    setTimeout(spawnMeteor, 4000 + Math.random() * 6000);
+  }
+
+  function drawFrame(t) {
     ctx.clearRect(0, 0, W, H);
-    particles.forEach(p => {
-      const alpha = p.a * (0.5 + 0.5 * Math.sin(t * p.speed + p.phase));
+
+    // stars
+    stars.forEach(s => {
+      const a = s.base * (0.6 + 0.4 * Math.sin(t * s.speed + s.phase));
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(212, 175, 55, ${alpha * 0.8})`;
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(201,168,76,${a})`;
       ctx.fill();
     });
-    requestAnimationFrame(draw);
+
+    // meteors
+    meteors = meteors.filter(m => m.life > 0);
+    meteors.forEach(m => {
+      ctx.save();
+      const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * m.len / 4, m.y - m.vy * m.len / 4);
+      grad.addColorStop(0, `rgba(255,240,180,${m.life * 0.9})`);
+      grad.addColorStop(1, 'rgba(201,168,76,0)');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(m.x, m.y);
+      ctx.lineTo(m.x - m.vx * m.len / 4, m.y - m.vy * m.len / 4);
+      ctx.stroke();
+      ctx.restore();
+      m.x += m.vx;
+      m.y += m.vy;
+      m.life -= 0.022;
+    });
+
+    requestAnimationFrame(drawFrame);
   }
 
   window.addEventListener('resize', resize);
   resize();
-  requestAnimationFrame(draw);
+  requestAnimationFrame(drawFrame);
+  setTimeout(spawnMeteor, 2000);
+
+  // ── 山脉出现 ──
+  setTimeout(() => {
+    document.getElementById('mountains').classList.add('visible');
+  }, 800);
+
+  // ── 滚动触发入场 ──
+  const targets = [
+    { id: 'd1',  delay: 0 },
+    { id: 's1',  delay: 80 },
+    { id: 's2',  delay: 0 },
+    { id: 'vb',  delay: 0 },
+    { id: 's3',  delay: 0 },
+    { id: 'bl',  delay: 0 },
+    { id: 'd2',  delay: 0 },
+    { id: 'sig', delay: 120 },
+  ];
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const t = targets.find(t => t.id === entry.target.id);
+        setTimeout(() => entry.target.classList.add('visible'), t ? t.delay : 0);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  targets.forEach(t => {
+    const el = document.getElementById(t.id);
+    if (el) observer.observe(el);
+  });
 })();
 </script>
-
 </body>
 </html>
